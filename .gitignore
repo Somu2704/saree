@@ -1,0 +1,32 @@
+# Java / Maven
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+backend/.mvn/wrapper/maven-wrapper.properties
+backend/.idea/
+backend/*.log
+
+# IDE
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+# Local env and secrets
+.env
+.env.local
+.env.*
+!/.env.example
+
+# Docker local state
+**/data/
+
+# Node / frontend caches (if added later)
+web/node_modules/
+admin/node_modules/
+
+# Mobile
+mobile/node_modules/
+
+# Build output
+**/build/
+**/dist/
