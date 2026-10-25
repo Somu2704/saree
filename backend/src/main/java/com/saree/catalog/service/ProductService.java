@@ -11,6 +11,8 @@ import com.saree.catalog.repository.CollectionRepository;
 import com.saree.catalog.repository.ProductCategoryRepository;
 import com.saree.catalog.repository.ProductCollectionRepository;
 import com.saree.catalog.repository.ProductRepository;
+import com.saree.inventory.entity.InventoryItem;
+import com.saree.inventory.repository.InventoryItemRepository;
 import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.UUID;
@@ -27,18 +29,21 @@ public class ProductService {
     private final CollectionRepository collectionRepository;
     private final ProductCategoryRepository productCategoryRepository;
     private final ProductCollectionRepository productCollectionRepository;
+    private final InventoryItemRepository inventoryItemRepository;
 
     public ProductService(
             ProductRepository productRepository,
             CategoryRepository categoryRepository,
             CollectionRepository collectionRepository,
             ProductCategoryRepository productCategoryRepository,
-            ProductCollectionRepository productCollectionRepository) {
+            ProductCollectionRepository productCollectionRepository,
+            InventoryItemRepository inventoryItemRepository) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.collectionRepository = collectionRepository;
         this.productCategoryRepository = productCategoryRepository;
         this.productCollectionRepository = productCollectionRepository;
+        this.inventoryItemRepository = inventoryItemRepository;
     }
 
     public ProductResponse create(ProductRequest request) {
@@ -61,6 +66,7 @@ public class ProductService {
         product.setStatus(request.status() == null ? ProductStatus.ACTIVE : ProductStatus.valueOf(request.status().toUpperCase()));
 
         Product savedProduct = productRepository.save(product);
+        ensureInventoryItem(savedProduct.getId(), request.stockQuantity() == null ? 0 : request.stockQuantity());
         syncProductCategories(savedProduct, request.categoryIds());
         syncProductCollections(savedProduct, request.collectionIds());
 
@@ -95,9 +101,20 @@ public class ProductService {
         product.setStatus(request.status() == null ? product.getStatus() : ProductStatus.valueOf(request.status().toUpperCase()));
 
         Product savedProduct = productRepository.save(product);
+        ensureInventoryItem(savedProduct.getId(), request.stockQuantity() == null ? product.getStockQuantity() : request.stockQuantity());
         syncProductCategories(savedProduct, request.categoryIds());
         syncProductCollections(savedProduct, request.collectionIds());
         return toResponse(savedProduct);
+    }
+
+    private void ensureInventoryItem(UUID productId, Integer quantity) {
+        if (inventoryItemRepository.findByProductId(productId).isEmpty()) {
+            InventoryItem item = new InventoryItem();
+            item.setProductId(productId);
+            item.setAvailableQuantity(quantity == null ? 0 : quantity);
+            item.setReservedQuantity(0);
+            inventoryItemRepository.save(item);
+        }
     }
 
     private ProductResponse toResponse(Product product) {
