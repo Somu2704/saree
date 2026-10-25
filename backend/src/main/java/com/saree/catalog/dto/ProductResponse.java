@@ -3,6 +3,7 @@ package com.saree.catalog.dto;
 import com.saree.catalog.entity.Product;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 public record ProductResponse(
@@ -19,10 +20,16 @@ public record ProductResponse(
         String currency,
         Integer stockQuantity,
         String status,
+        List<UUID> categoryIds,
+        List<UUID> collectionIds,
         Instant createdAt,
         Instant updatedAt) {
 
     public static ProductResponse from(Product product) {
+        return from(product, List.of(), List.of());
+    }
+
+    public static ProductResponse from(Product product, List<UUID> categoryIds, List<UUID> collectionIds) {
         return new ProductResponse(
                 product.getId(),
                 product.getSku(),
@@ -37,6 +44,8 @@ public record ProductResponse(
                 product.getCurrency(),
                 product.getStockQuantity(),
                 product.getStatus().name(),
+                categoryIds,
+                collectionIds,
                 product.getCreatedAt(),
                 product.getUpdatedAt());
     }

@@ -4,6 +4,8 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.UUID;
 
 public record ProductRequest(
         @NotBlank(message = "SKU is required") String sku,
@@ -16,5 +18,7 @@ public record ProductRequest(
         @NotNull(message = "Base price is required") @DecimalMin(value = "0.0", inclusive = false, message = "Base price must be greater than zero") BigDecimal basePrice,
         BigDecimal salePrice,
         Integer stockQuantity,
-        String status) {
+        String status,
+        List<UUID> categoryIds,
+        List<UUID> collectionIds) {
 }
