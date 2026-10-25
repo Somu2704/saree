@@ -13,12 +13,16 @@ import java.time.Instant;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
 public class AuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -34,6 +38,7 @@ public class AuthService {
     public UserResponse register(RegisterRequest request) {
         String email = normalizeEmail(request.email());
         if (userRepository.existsByEmail(email)) {
+            log.warn("Registration rejected: email already exists {}", email);
             throw new IllegalArgumentException("User already exists with email: " + email);
         }
 
@@ -46,6 +51,7 @@ public class AuthService {
         user.setRole(Role.CUSTOMER);
 
         userRepository.save(user);
+        log.info("User registered successfully: {}", email);
 
         return new UserResponse(user.getId(), user.getEmail(), user.getFirstName(), user.getLastName(), user.getRole().name());
     }
@@ -53,17 +59,23 @@ public class AuthService {
     public AuthResponse login(LoginRequest request) {
         String email = normalizeEmail(request.email());
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
+                .orElseThrow(() -> {
+                    log.warn("Login failed: invalid email {}", email);
+                    return new BadCredentialsException("Invalid email or password");
+                });
 
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+            log.warn("Login failed: invalid password for email {}", email);
             throw new BadCredentialsException("Invalid email or password");
         }
 
+        log.info("User logged in successfully: {}", email);
         return toAuthResponse(user);
     }
 
     public AuthResponse refreshToken(String refreshToken) {
         if (!jwtTokenProvider.validateToken(refreshToken)) {
+            log.warn("Refresh token rejected: invalid refresh token");
             throw new IllegalArgumentException("Invalid refresh token");
         }
 
@@ -71,6 +83,7 @@ public class AuthService {
         User user = userRepository.findByEmail(claims.getSubject())
                 .orElseThrow(() -> new IllegalArgumentException("User no longer exists"));
 
+        log.info("Refresh token accepted for user {}", user.getEmail());
         return toAuthResponse(user);
     }
 
@@ -84,6 +97,7 @@ public class AuthService {
         user.setOtpExpiresAt(Instant.now().plusSeconds(300));
         userRepository.save(user);
 
+        log.info("OTP generated for user {}", normalizedEmail);
         return Map.of(
                 "message", "OTP sent successfully",
                 "otpCode", otpCode,

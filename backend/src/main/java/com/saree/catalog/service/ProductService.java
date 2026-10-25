@@ -16,6 +16,8 @@ import com.saree.inventory.repository.InventoryItemRepository;
 import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,8 @@ import org.springframework.stereotype.Service;
 @Service
 @Transactional
 public class ProductService {
+
+    private static final Logger log = LoggerFactory.getLogger(ProductService.class);
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
@@ -48,6 +52,7 @@ public class ProductService {
 
     public ProductResponse create(ProductRequest request) {
         if (productRepository.findBySlug(request.slug()).isPresent()) {
+            log.warn("Product creation rejected: duplicate slug {}", request.slug());
             throw new IllegalArgumentException("Product with slug already exists");
         }
 
@@ -70,6 +75,7 @@ public class ProductService {
         syncProductCategories(savedProduct, request.categoryIds());
         syncProductCollections(savedProduct, request.collectionIds());
 
+        log.info("Product created successfully: {} ({})", savedProduct.getName(), savedProduct.getSlug());
         return toResponse(savedProduct);
     }
 
@@ -104,6 +110,8 @@ public class ProductService {
         ensureInventoryItem(savedProduct.getId(), request.stockQuantity() == null ? product.getStockQuantity() : request.stockQuantity());
         syncProductCategories(savedProduct, request.categoryIds());
         syncProductCollections(savedProduct, request.collectionIds());
+
+        log.info("Product updated successfully: {} ({})", savedProduct.getName(), savedProduct.getSlug());
         return toResponse(savedProduct);
     }
 

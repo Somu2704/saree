@@ -11,6 +11,8 @@ import com.saree.media.repository.MediaRepository;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class MediaService {
 
+    private static final Logger log = LoggerFactory.getLogger(MediaService.class);
     private static final String CDN_BASE_URL = "https://cdn.saree.local";
 
     private final MediaRepository mediaRepository;
@@ -54,6 +57,7 @@ public class MediaService {
 
         Media saved = mediaRepository.save(media);
         String uploadUrl = generateUploadUrl(storageKey);
+        log.info("Media upload URL generated for product {} and file {}", product.getId(), sanitizedFileName);
         return MediaResponse.from(saved, uploadUrl);
     }
 
@@ -75,6 +79,7 @@ public class MediaService {
         Media media = mediaRepository.findById(mediaId)
                 .orElseThrow(() -> new IllegalArgumentException("Media not found"));
         mediaRepository.delete(media);
+        log.info("Media deleted: {} for product {}", mediaId, media.getProduct().getId());
     }
 
     private String generateUploadUrl(String storageKey) {
